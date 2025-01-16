@@ -26,7 +26,7 @@ class MACrossoverStrategy(BaseStrategy):
 
     async def initialize(self) -> None:
         """Initialize strategy"""
-        await self.load_state()
+        self.load_state()
         self.indicators = {
             "fast_ma": [],
             "slow_ma": [],
@@ -96,7 +96,7 @@ class MACrossoverStrategy(BaseStrategy):
                     self.indicators["last_cross"] = "down"
 
             if signal:
-                await self.update_state({
+                self.update_state({
                     "last_signal": {
                         "timestamp": signal.timestamp.isoformat(),
                         "side": signal.side,

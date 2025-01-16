@@ -1,6 +1,8 @@
 from typing import Dict, Any, Optional, List
 import logging
 from datetime import datetime
+
+from src.config.types import Config
 from .models import Order, Trade, Position, OrderType, OrderStatus, PositionStatus
 from .order_manager import OrderManager
 from .position_manager import PositionManager
@@ -13,7 +15,7 @@ class TradingEngine:
         self,
         state_manager: Any,
         jupiter_client: Any,  # Will be properly typed when implementing Jupiter integration
-        config: Dict[str, Any]
+        config: Config
     ):
         self.state_manager = state_manager
         self.jupiter_client = jupiter_client

@@ -1,7 +1,9 @@
 from typing import Dict, Any, Optional, List, Type
 import logging
 from datetime import datetime
-from .base_strategy import BaseStrategy
+
+from src.config.types import Config
+from .base import BaseStrategy
 from .models import Signal, StrategyState, DataPoint
 from ..trading_engine.engine import TradingEngine
 
@@ -13,7 +15,7 @@ class StrategyManager:
         self,
         trading_engine: TradingEngine,
         state_manager: Any,
-        config: Dict[str, Any]
+        config: Config
     ):
         self.trading_engine = trading_engine
         self.state_manager = state_manager
@@ -40,7 +42,12 @@ class StrategyManager:
                 state_manager=self.state_manager
             )
 
+            # Initialize strategy (async operation)
             await strategy.initialize()
+
+            # Load initial state (sync operation)
+            strategy.load_state()
+
             self.strategies[strategy_id] = strategy
             self.active_symbols.add(symbol)
 
@@ -59,16 +66,21 @@ class StrategyManager:
             strategy = self.strategies[strategy_id]
             symbol = strategy.symbol
 
-            # Close any open positions
-            state = await strategy.get_state()
+            # Load current state (sync operation)
+            state = strategy.load_state()
+
             if state and state.current_position:
                 try:
+                    # Close any open positions (async operation)
                     await self.trading_engine.close_position(
                         position_id=state.current_position,
                         metadata={"reason": "strategy_removed"}
                     )
                 except Exception as e:
                     logger.error(f"Error closing position: {str(e)}")
+
+            # Cleanup strategy (sync operation)
+            strategy.cleanup()
 
             # Remove strategy
             del self.strategies[strategy_id]
@@ -114,7 +126,7 @@ class StrategyManager:
                         f"Strategy not found for signal: {signal.strategy_id}")
                     continue
 
-                state = await strategy.get_state()
+                state = strategy.load_state()  # Synchronous operation
                 if not state:
                     logger.warning(
                         f"Strategy state not found: {signal.strategy_id}")
@@ -141,10 +153,11 @@ class StrategyManager:
                     )
 
                     # Update strategy state with new position
-                    await strategy.update_state(
-                        position_id=order.position_id,
-                        position_size=signal.size,
-                        metadata=signal.metadata
+                    strategy.update_state(  # Synchronous operation
+                        new_state={
+                            "position_size": signal.size,
+                            "metadata": signal.metadata
+                        }
                     )
 
                 elif signal.signal_type == "exit":
@@ -164,10 +177,11 @@ class StrategyManager:
                     )
 
                     # Update strategy state
-                    await strategy.update_state(
-                        position_id=None,
-                        position_size=0,
-                        metadata=signal.metadata
+                    strategy.update_state(  # Synchronous operation
+                        new_state={
+                            "position_size": 0,
+                            "metadata": signal.metadata
+                        }
                     )
 
             except Exception as e:
@@ -178,7 +192,7 @@ class StrategyManager:
         try:
             summaries = []
             for strategy_id, strategy in self.strategies.items():
-                state = await strategy.get_state()
+                state = strategy.load_state()  # Synchronous operation
                 if not state:
                     continue
 

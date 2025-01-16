@@ -1,54 +1,73 @@
-import json
-import os
-from typing import Dict, Any
+import yaml
+from typing import Dict, Any, Optional
 from pathlib import Path
-from .env import get_env_config
+from .types import Config, StrategyTemplates
 
 
 class ConfigLoader:
     def __init__(self):
-        self.env_config = get_env_config()
         self.template_dir = Path(__file__).parent / "templates"
-        self.templates = self._load_templates()
+        self.config: Optional[Config] = None
 
-    def _load_templates(self) -> Dict[str, Any]:
-        """Load all template configurations"""
-        templates = {}
-        for template_file in self.template_dir.glob("*.json"):
-            with open(template_file, 'r') as f:
-                templates[template_file.stem] = json.load(f)
-        return templates
+    def load_config(self, config_dict: Dict[str, Any]) -> Config:
+        """Load and validate configuration"""
+        # Load strategy templates
+        strategy_templates = self._load_strategy_templates()
+
+        # Create config with templates
+        self.config = Config(
+            **config_dict,
+            strategy_templates=strategy_templates
+        )
+        return self.config
+
+    def _load_strategy_templates(self) -> StrategyTemplates:
+        """Load strategy templates"""
+        template_path = self.template_dir / "strategy_templates.yaml"
+        if not template_path.exists():
+            raise FileNotFoundError(
+                f"Strategy templates not found at {template_path}")
+
+        with open(template_path, 'r') as f:
+            templates = yaml.safe_load(f)
+            return StrategyTemplates(**templates)
 
     def get_strategy_template(self, strategy_type: str, template_name: str = "default") -> Dict[str, Any]:
         """Get strategy template configuration"""
-        strategy_templates = self.templates.get("strategy_templates", {})
-        strategy_config = strategy_templates.get(strategy_type, {})
-        return strategy_config.get(template_name, {})
+        if not self.config or not self.config.strategy_templates:
+            raise RuntimeError("Configuration not loaded")
 
-    def get_data_processor_config(self, processor_type: str) -> Dict[str, Any]:
-        """Get data processor configuration"""
-        processor_templates = self.templates.get("data_processors", {})
-        return processor_templates.get(processor_type, {})
+        templates = self.config.strategy_templates
+        if strategy_type == "ma_crossover":
+            return templates.ma_crossover[template_name].dict()
+        elif strategy_type == "vwap":
+            return templates.vwap[template_name].dict()
+        else:
+            raise ValueError(f"Unknown strategy type: {strategy_type}")
 
     def get_db_config(self) -> Dict[str, Any]:
         """Get database configuration"""
-        return self.env_config["database"]
+        if not self.config:
+            raise RuntimeError("Configuration not loaded")
+        return self.config.database.dict()
 
     def get_redis_config(self) -> Dict[str, Any]:
         """Get Redis configuration"""
-        return self.env_config["redis"]
+        if not self.config:
+            raise RuntimeError("Configuration not loaded")
+        return self.config.redis.dict()
 
     def get_jupiter_config(self) -> Dict[str, Any]:
         """Get Jupiter configuration"""
-        return self.env_config["jupiter"]
+        if not self.config:
+            raise RuntimeError("Configuration not loaded")
+        return self.config.jupiter.dict()
 
     def get_api_config(self) -> Dict[str, Any]:
         """Get API configuration"""
-        return self.env_config["api"]
-
-    def get_logging_config(self) -> Dict[str, Any]:
-        """Get logging configuration"""
-        return self.env_config["logging"]
+        if not self.config:
+            raise RuntimeError("Configuration not loaded")
+        return self.config.api.dict()
 
 
 # Create a singleton instance

@@ -198,7 +198,7 @@ class OrderManager:
             state['status'] = order.status.value
             state['type'] = order.type.value
 
-            await self.state_manager.set_state(
+            self.state_manager.set_state(
                 f"order:{order.order_id}",
                 state
             )
@@ -219,7 +219,7 @@ class OrderManager:
                 if not k.startswith('_')
             }
 
-            await self.state_manager.set_state(
+            self.state_manager.set_state(
                 f"trade:{trade.trade_id}",
                 state
             )

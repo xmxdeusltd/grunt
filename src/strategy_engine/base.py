@@ -32,6 +32,7 @@ class BaseStrategy(ABC):
     @abstractmethod
     async def process_data(self, data_point: DataPoint) -> None:
         """Process incoming data"""
+        logger.info(f"Processing data point: {data_point}")
         pass
 
     @abstractmethod
@@ -70,39 +71,11 @@ class BaseStrategy(ABC):
         """Get list of required data types"""
         return self.data_requirements
 
-    async def update_state(self, new_state: Dict[str, Any]) -> None:
-        """Update strategy state"""
-        try:
-            current_state = await self.state_manager.get_strategy_state(self.strategy_id)
-            if not current_state:
-                current_state = {}
-
-            # Update with new state
-            current_state.update(new_state)
-            current_state["last_update"] = datetime.utcnow()
-
-            # Save state
-            await self.state_manager.update_strategy_state(self.strategy_id, current_state)
-
-            # Update local state
-            self.state = StrategyState(
-                strategy_id=self.strategy_id,
-                symbol=self.symbol,
-                active=current_state.get("active", True),
-                last_update=current_state["last_update"],
-                position_size=current_state.get("position_size", 0),
-                current_position=current_state.get("current_position"),
-                metadata=current_state.get("metadata", {})
-            )
-
-        except Exception as e:
-            logger.error(f"Error updating strategy state: {str(e)}")
-            raise
-
-    async def load_state(self) -> None:
+    def load_state(self) -> None:
         """Load strategy state"""
         try:
-            state_data = await self.state_manager.get_strategy_state(self.strategy_id)
+            state_data = self.state_manager.get_strategy_state(
+                self.strategy_id)
             if state_data:
                 self.state = StrategyState(
                     strategy_id=self.strategy_id,
@@ -116,7 +89,7 @@ class BaseStrategy(ABC):
                 )
             else:
                 # Initialize with default state
-                await self.update_state({
+                self.update_state({
                     "active": True,
                     "position_size": 0,
                     "metadata": {}
@@ -126,11 +99,47 @@ class BaseStrategy(ABC):
             logger.error(f"Error loading strategy state: {str(e)}")
             raise
 
-    async def cleanup(self) -> None:
+    def update_state(self, new_state: Dict[str, Any]) -> None:
+        """Update strategy state"""
+        try:
+            if not self.state:
+                self.state = StrategyState(
+                    strategy_id=self.strategy_id,
+                    symbol=self.symbol,
+                    active=new_state.get("active", True),
+                    last_update=datetime.utcnow(),
+                    position_size=new_state.get("position_size", 0),
+                    current_position=new_state.get("current_position"),
+                    metadata=new_state.get("metadata", {})
+                )
+            else:
+                # Update existing state
+                for key, value in new_state.items():
+                    setattr(self.state, key, value)
+                self.state.last_update = datetime.utcnow()
+
+            # Save to state storage
+            state_dict = {
+                "strategy_id": self.state.strategy_id,
+                "symbol": self.state.symbol,
+                "active": self.state.active,
+                "last_update": self.state.last_update.isoformat(),
+                "position_size": self.state.position_size,
+                "current_position": self.state.current_position,
+                "metadata": self.state.metadata
+            }
+            self.state_manager.update_strategy_state(
+                self.strategy_id, state_dict)
+
+        except Exception as e:
+            logger.error(f"Error updating strategy state: {str(e)}")
+            raise
+
+    def cleanup(self) -> None:
         """Cleanup strategy resources"""
         try:
             # Update state as inactive
-            await self.update_state({"active": False})
+            self.update_state({"active": False})
 
             # Clear indicators and custom data
             self.indicators.clear()

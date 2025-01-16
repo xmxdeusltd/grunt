@@ -33,31 +33,38 @@ Detailed architecture documentation can be found in [docs/ARCHITECTURE.md](docs/
 - [API Layer](docs/modules/API_LAYER.md)
 - [Event System](docs/modules/EVENT_SYSTEM.md)
 
-## Getting Started
-
-### Prerequisites
+## Prerequisites
 
 - Python 3.8+
 - PostgreSQL
 - Redis
 - Jupiter API access
 
-### System Setup and Configuration
+## Development Setup
 
-1. Clone the repository:
+### Local Development (Recommended)
+
+1. **Install Poetry** (Package Manager):
 
 ```bash
-git clone [repository-url]
-cd trading-bot
+curl -sSL https://install.python-poetry.org | python3 -
 ```
 
-2. Create and configure environment variables:
+2. **Setup**:
 
 ```bash
-# Copy example env file
-cp .env.example .env
+# Install dependencies
+poetry install
+```
 
-# Required environment variables:
+3. **Configure Environment**:
+
+```bash
+# Copy example files
+cp .env.example .env
+cp config.example.yaml config.yaml
+
+# Edit .env with your credentials
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 POSTGRES_USER=trading_bot
@@ -74,27 +81,49 @@ JUPITER_AUTH_TOKEN=your_jupiter_token
 API_SECRET_KEY=your_api_secret
 ```
 
-3. Configure the system:
+4. **Database Setup**:
 
 ```bash
-# Copy example config
-cp config.example.yaml config.yaml
+# Create PostgreSQL database
+createdb trading_bot
 
-# Edit config.yaml with your settings
-# Key configurations include:
-# - Trading parameters
-# - Strategy templates
-# - Risk management settings
-# - API configurations
+# Redis should be running locally
+redis-server
 ```
 
-4. Starting the Bot
+5. **Run the Bot**:
 
 ```bash
-python -m src.main config.yaml
+# Activate virtual environment
+poetry env activate
+
+# Start the bot
+poetry run start config.yaml
 ```
 
-5. Add a trading strategy:
+### Production Setup (Future Use)
+
+1. **Docker Setup**:
+
+```bash
+# Build image
+docker build -t trading-bot -f docker/Dockerfile .
+
+# Run with docker-compose
+docker-compose -f docker/docker-compose.yml up -d
+```
+
+2. **Production Configuration**:
+
+- Use environment-specific .env files
+- Configure proper security settings
+- Set up monitoring and logging
+- Use production-grade databases
+- Implement backup strategies
+
+## Usage
+
+### Adding a Trading Strategy
 
 ```bash
 # Using the API to add a strategy
@@ -113,7 +142,9 @@ curl -X POST http://localhost:8000/api/v1/strategy \
   }'
 ```
 
-6. Monitoring
+### Monitoring
+
+#### API Endpoints
 
 ```bash
 # Get system status
@@ -133,25 +164,52 @@ curl http://localhost:8000/api/v1/events/trade_executed \
   -H "Authorization: Bearer your_token"
 ```
 
-7. Key Monitoring Points
+#### WebSocket Events
 
+```javascript
+const ws = new WebSocket("ws://localhost:8000/ws");
+ws.send(
+  JSON.stringify({
+    type: "subscribe",
+    events: [
+      "trade_executed",
+      "position_opened",
+      "position_closed",
+      "strategy_signal",
+    ],
+  })
+);
 ```
 
 ## Configuration
 
+### Environment Variables (.env)
+
+- Database credentials
+- Redis connection details
+- API keys and secrets
+- Security tokens
+
+### Application Config (config.yaml)
+
+- Trading parameters
+- Risk management settings
+- Strategy configurations
+- API rate limits
+
 ### Strategy Templates
 
-The system includes pre-configured strategy templates:
+1. **MA Crossover**:
 
-1. MA Crossover
    - Conservative: Slower moving averages, larger volume requirements
    - Aggressive: Faster moving averages, lower volume requirements
 
-2. VWAP
+2. **VWAP**:
+
    - Default: Daily VWAP with standard deviation bands
    - Scalping: Hourly VWAP with tighter bands
 
-3. TWAP
+3. **TWAP**:
    - Default: 5-minute intervals over 1 hour
    - Aggressive: 1-minute intervals over 30 minutes
 
@@ -162,37 +220,39 @@ The system includes pre-configured strategy templates:
 - Trailing stop functionality
 - Maximum positions per symbol
 
+## Project Structure
+
+```
+trading-bot/
+├── src/                 # Source code
+│   ├── api/            # API endpoints
+│   ├── trading_engine/ # Trading logic
+│   ├── strategy_engine/# Trading strategies
+│   └── events/         # Event system
+├── tests/              # Test files
+├── docker/             # Docker configuration (future use)
+├── pyproject.toml      # Poetry configuration
+├── config.yaml         # Application configuration
+└── .env               # Environment variables
+```
+
 ## Development
-
-### Code Structure
-
-```
-
-src/
-├── api/ # API layer and endpoints
-├── config/ # Configuration management
-├── events/ # Event system
-├── trading_engine/ # Trading execution
-├── strategy_engine/# Strategy implementation
-└── data_management/# Data handling
-
-```
 
 ### Best Practices
 
-1. Strategy Development
+1. **Strategy Development**:
+
    - Start with simple strategies
    - Test on multiple market conditions
    - Implement proper position sizing
    - Include transaction costs
 
-2. Testing
+2. **Testing**:
    - Unit tests for components
    - Integration tests
    - Paper trading validation
    - Production monitoring
 
-## License
+```
 
-[License information]
 ```

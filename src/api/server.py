@@ -16,6 +16,7 @@ from .models import (
 from ..integration import TradingSystem
 from ..strategy_engine.strategies import get_strategy_class
 from ..events import EventType, EventManager
+from ..config.types import Config
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +35,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# OAuth2 scheme for token authentication
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
 
 class APIServer:
-    def __init__(self, trading_system: TradingSystem, config: Dict[str, Any]):
+    def __init__(self, trading_system: TradingSystem, config: Config):
         self.trading_system = trading_system
         self.config = config
         self.websocket_connections: Dict[str, Dict[str, Any]] = {}
@@ -90,7 +88,7 @@ class APIServer:
         """Setup API routes"""
 
         @app.post("/api/v1/trade", response_model=APIResponse)
-        async def execute_trade(trade: TradeRequest, token: str = Depends(oauth2_scheme)):
+        async def execute_trade(trade: TradeRequest):
             """Execute a trade"""
             try:
                 order = await self.trading_system.trading_engine.execute_market_order(
@@ -103,33 +101,37 @@ class APIServer:
 
                 return APIResponse(
                     success=True,
-                    data={"order_id": order.order_id}
+                    data={"order_id": order.order_id},
+                    error=None
                 )
             except Exception as e:
                 logger.error(f"Error executing trade: {str(e)}")
                 raise HTTPException(status_code=400, detail=str(e))
 
         @app.get("/api/v1/positions", response_model=APIResponse)
-        async def get_positions(token: str = Depends(oauth2_scheme)):
+        async def get_positions():
             """Get all open positions"""
             try:
                 positions = await self.trading_system.trading_engine.get_position_summary()
-                return APIResponse(success=True, data=positions)
+                return APIResponse(success=True, data=positions, error=None)
             except Exception as e:
                 logger.error(f"Error getting positions: {str(e)}")
                 raise HTTPException(status_code=400, detail=str(e))
 
+        @app.get("/api/v1/strategy", response_model=APIResponse)
+        async def get_strategies():
+            """Get all strategies"""
+            strategies = await self.trading_system.get_strategies()
+            return APIResponse(success=True, data=strategies, error=None)
+
         @app.post("/api/v1/strategy", response_model=APIResponse)
-        async def add_strategy(
-            config: StrategyConfig,
-            token: str = Depends(oauth2_scheme)
-        ):
+        async def add_strategy(config: StrategyConfig):
             """Add new strategy"""
             try:
                 # Get strategy template
-                template = await self.trading_system.config_loader.get_strategy_template(
+                template = self.trading_system.config_loader.get_strategy_template(
                     config.type,
-                    config.template
+                    config.template or "default"
                 )
 
                 # Merge template with custom parameters
@@ -151,50 +153,25 @@ class APIServer:
 
                 return APIResponse(
                     success=True,
-                    data={"strategy_id": strategy_id}
+                    data={"strategy_id": strategy_id},
+                    error=None
                 )
             except Exception as e:
                 logger.error(f"Error adding strategy: {str(e)}")
                 raise HTTPException(status_code=400, detail=str(e))
 
         @app.delete("/api/v1/strategy/{strategy_id}", response_model=APIResponse)
-        async def remove_strategy(
-            strategy_id: str,
-            token: str = Depends(oauth2_scheme)
-        ):
+        async def remove_strategy(strategy_id: str):
             """Remove strategy"""
             try:
                 await self.trading_system.remove_strategy(strategy_id)
-                return APIResponse(success=True)
+                return APIResponse(success=True, data=None, error=None)
             except Exception as e:
                 logger.error(f"Error removing strategy: {str(e)}")
                 raise HTTPException(status_code=400, detail=str(e))
 
-        @app.put("/api/v1/strategy/{strategy_id}", response_model=APIResponse)
-        async def update_strategy(
-            strategy_id: str,
-            update: StrategyUpdate,
-            token: str = Depends(oauth2_scheme)
-        ):
-            """Update strategy configuration"""
-            try:
-                await self.trading_system.strategy_manager.update_strategy(
-                    strategy_id=strategy_id,
-                    active=update.active,
-                    parameters=update.parameters,
-                    metadata=update.metadata
-                )
-                return APIResponse(success=True)
-            except Exception as e:
-                logger.error(f"Error updating strategy: {str(e)}")
-                raise HTTPException(status_code=400, detail=str(e))
-
         @app.get("/api/v1/trades", response_model=APIResponse)
-        async def get_trades(
-            time_range: TimeRange = Depends(),
-            symbol: Optional[str] = None,
-            token: str = Depends(oauth2_scheme)
-        ):
+        async def get_trades(time_range: TimeRange = Depends(), symbol: Optional[str] = None):
             """Get trade history"""
             try:
                 trades = await self.trading_system.get_trade_history(
@@ -202,17 +179,17 @@ class APIServer:
                     start_time=time_range.start_time,
                     end_time=time_range.end_time
                 )
-                return APIResponse(success=True, data=trades)
+                return APIResponse(success=True, data=trades, error=None)
             except Exception as e:
                 logger.error(f"Error getting trades: {str(e)}")
                 raise HTTPException(status_code=400, detail=str(e))
 
         @app.get("/api/v1/status", response_model=APIResponse)
-        async def get_status(token: str = Depends(oauth2_scheme)):
+        async def get_status():
             """Get system status"""
             try:
                 status = await self.trading_system.get_system_status()
-                return APIResponse(success=True, data=status)
+                return APIResponse(success=True, data=status, error=None)
             except Exception as e:
                 logger.error(f"Error getting status: {str(e)}")
                 raise HTTPException(status_code=400, detail=str(e))
@@ -284,11 +261,7 @@ class APIServer:
 
         # Add event history endpoint
         @app.get("/api/v1/events/{event_type}", response_model=APIResponse)
-        async def get_event_history(
-            event_type: str,
-            limit: int = 100,
-            token: str = Depends(oauth2_scheme)
-        ):
+        async def get_event_history(event_type: str, limit: int = 100):
             """Get historical events for a specific type"""
             try:
                 try:
@@ -303,7 +276,7 @@ class APIServer:
                     event_enum,
                     limit=limit
                 )
-                return APIResponse(success=True, data=history)
+                return APIResponse(success=True, data=history, error=None)
             except Exception as e:
                 logger.error(f"Error getting event history: {str(e)}")
                 raise HTTPException(

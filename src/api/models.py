@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -40,6 +40,7 @@ class TimeRange(BaseModel):
 
 class APIResponse(BaseModel):
     success: bool = Field(..., description="Operation success status")
-    data: Optional[Dict[str, Any]] = Field(None, description="Response data")
+    data: Optional[Union[Dict[str, Any], List[Any], Any]
+                   ] = Field(None, description="Response data")
     error: Optional[str] = Field(None, description="Error message if any")
     timestamp: datetime = Field(default_factory=datetime.utcnow)

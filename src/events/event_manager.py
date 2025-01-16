@@ -1,4 +1,4 @@
-from typing import Dict, Set, Callable, Any, Coroutine
+from typing import Dict, Set, Callable, Any, Coroutine, Optional
 import logging
 import asyncio
 from datetime import datetime
@@ -81,7 +81,7 @@ class EventManager:
                 f"Error getting history for {event_type.value}: {str(e)}")
             raise
 
-    async def clear_history(self, event_type: EventType = None) -> None:
+    async def clear_history(self, event_type: Optional[EventType] = None) -> None:
         """Clear event history for specific type or all types"""
         try:
             if event_type:

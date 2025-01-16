@@ -1,5 +1,5 @@
 from typing import Dict, Any, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
@@ -35,7 +35,7 @@ class Order:
     filled_price: Optional[float] = None
     filled_size: Optional[float] = None
     filled_timestamp: Optional[datetime] = None
-    metadata: Dict[str, Any] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
 
 
@@ -53,7 +53,7 @@ class Position:
     entry_time: datetime
     last_update_time: datetime
     stop_loss: Optional[float] = None
-    metadata: Dict[str, Any] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -67,4 +67,4 @@ class Trade:
     price: float
     timestamp: datetime
     fee: float
-    metadata: Dict[str, Any] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)

@@ -1,44 +1,49 @@
 from typing import Dict, Any, Optional
-import aioredis
+import redis
 import json
 import logging
 from datetime import datetime
+
+from src.config.types import RedisConfig
 
 logger = logging.getLogger(__name__)
 
 
 class StateManager:
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: RedisConfig):
         self.config = config
-        self.redis: Optional[aioredis.Redis] = None
+        self.redis: Optional[redis.Redis] = None
 
-    async def initialize(self):
-        """Initialize Redis connection"""
+        # Initialize Redis connection
         try:
-            self.redis = await aioredis.create_redis_pool(
-                f'redis://{self.config["host"]}:{self.config["port"]}',
-                db=self.config.get("db", 0),
-                password=self.config.get("password"),
-                maxsize=self.config.get("max_connections", 10)
+            self.redis = redis.Redis(
+                host=self.config.host,
+                port=self.config.port,
+                db=self.config.db,
+                password=self.config.password,
+                max_connections=self.config.max_connections,
+                decode_responses=True
             )
             logger.info("Redis connection initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Redis: {str(e)}")
             raise
 
-    async def get_state(self, key: str) -> Optional[Dict[str, Any]]:
+    def get_state(self, key: str) -> Optional[Dict[str, Any]]:
         """Get state data from Redis"""
         if not self.redis:
             raise RuntimeError("Redis not initialized")
 
         try:
-            data = await self.redis.get(key)
-            return json.loads(data) if data else None
+            data = self.redis.get(key)
+            if data is None:
+                return None
+            return json.loads(str(data))
         except Exception as e:
             logger.error(f"Failed to get state for key {key}: {str(e)}")
             raise
 
-    async def set_state(self, key: str, value: Dict[str, Any], ttl: Optional[int] = None) -> bool:
+    def set_state(self, key: str, value: Dict[str, Any], ttl: Optional[int] = None) -> bool:
         """Set state data in Redis"""
         if not self.redis:
             raise RuntimeError("Redis not initialized")
@@ -46,62 +51,60 @@ class StateManager:
         try:
             serialized_value = json.dumps(value)
             if ttl:
-                await self.redis.setex(key, ttl, serialized_value)
+                return bool(self.redis.setex(key, ttl, serialized_value))
             else:
-                await self.redis.set(key, serialized_value)
-            return True
+                return bool(self.redis.set(key, serialized_value))
         except Exception as e:
             logger.error(f"Failed to set state for key {key}: {str(e)}")
             raise
 
-    async def delete_state(self, key: str) -> bool:
+    def delete_state(self, key: str) -> bool:
         """Delete state data from Redis"""
         if not self.redis:
             raise RuntimeError("Redis not initialized")
 
         try:
-            return await self.redis.delete(key) > 0
+            return bool(self.redis.delete(key))
         except Exception as e:
             logger.error(f"Failed to delete state for key {key}: {str(e)}")
             raise
 
-    async def get_strategy_state(self, strategy_id: str) -> Optional[Dict[str, Any]]:
+    def get_strategy_state(self, strategy_id: str) -> Optional[Dict[str, Any]]:
         """Get strategy state"""
         key = f"strategy:{strategy_id}:state"
-        return await self.get_state(key)
+        return self.get_state(key)
 
-    async def update_strategy_state(self, strategy_id: str, state: Dict[str, Any]) -> bool:
+    def update_strategy_state(self, strategy_id: str, state: Dict[str, Any]) -> bool:
         """Update strategy state"""
         key = f"strategy:{strategy_id}:state"
-        return await self.set_state(key, state)
+        return self.set_state(key, state)
 
-    async def get_position_state(self, position_id: str) -> Optional[Dict[str, Any]]:
+    def get_position_state(self, position_id: str) -> Optional[Dict[str, Any]]:
         """Get position state"""
         key = f"position:{position_id}:state"
-        return await self.get_state(key)
+        return self.get_state(key)
 
-    async def update_position_state(self, position_id: str, state: Dict[str, Any]) -> bool:
+    def update_position_state(self, position_id: str, state: Dict[str, Any]) -> bool:
         """Update position state"""
         key = f"position:{position_id}:state"
-        return await self.set_state(key, state)
+        return self.set_state(key, state)
 
-    async def get_market_data(self, symbol: str) -> Optional[Dict[str, Any]]:
+    def get_market_data(self, symbol: str) -> Optional[Dict[str, Any]]:
         """Get latest market data"""
         key = f"market:{symbol}:latest"
-        return await self.get_state(key)
+        return self.get_state(key)
 
-    async def update_market_data(self, symbol: str, data: Dict[str, Any]) -> bool:
+    def update_market_data(self, symbol: str, data: Dict[str, Any]) -> bool:
         """Update latest market data"""
         key = f"market:{symbol}:latest"
-        # Market data typically needs a short TTL
-        return await self.set_state(key, data, ttl=self.config.get("market_data_ttl", 60))
+        return self.set_state(key, data, ttl=60)
 
-    async def get_custom_data(self, data_type: str, symbol: str) -> Optional[Dict[str, Any]]:
+    def get_custom_data(self, data_type: str, symbol: str) -> Optional[Dict[str, Any]]:
         """Get custom data"""
         key = f"custom:{data_type}:{symbol}"
-        return await self.get_state(key)
+        return self.get_state(key)
 
-    async def update_custom_data(
+    def update_custom_data(
         self,
         data_type: str,
         symbol: str,
@@ -110,11 +113,10 @@ class StateManager:
     ) -> bool:
         """Update custom data"""
         key = f"custom:{data_type}:{symbol}"
-        return await self.set_state(key, data, ttl=ttl)
+        return self.set_state(key, data, ttl=ttl)
 
-    async def close(self):
+    def close(self):
         """Close Redis connection"""
         if self.redis:
             self.redis.close()
-            await self.redis.wait_closed()
             logger.info("Redis connection closed")

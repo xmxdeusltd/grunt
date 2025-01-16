@@ -1,0 +1,30 @@
+# Moving Average Crossover Strategy Templates
+ma_crossover:
+  default: # Default MA strategy
+    fast_ma: 20 # Fast moving average period
+    slow_ma: 50 # Slow moving average period
+    min_volume: 1000000 # Minimum 24h volume in USDC
+    risk_factor: 0.02 # Strategy-specific risk factor
+  conservative: # Conservative MA strategy
+    fast_ma: 20 # Fast moving average period
+    slow_ma: 50 # Slow moving average period
+    min_volume: 1000000 # Minimum 24h volume in USDC
+    risk_factor: 0.02 # Strategy-specific risk factor
+  aggressive: # Aggressive MA strategy
+    fast_ma: 10 # Faster moving average periods
+    slow_ma: 21 # Shorter slow MA period
+    min_volume: 500000 # Lower volume requirement
+    risk_factor: 0.05 # Higher risk factor
+
+# VWAP Strategy Templates
+vwap:
+  default: # Default VWAP strategy
+    period: "1d" # VWAP calculation period
+    deviation: 2.0 # Standard deviation bands
+    min_volume: 1000000 # Minimum volume requirement
+    risk_factor: 0.02 # Strategy-specific risk factor
+  scalping: # Scalping VWAP strategy
+    period: "1h" # Shorter VWAP period
+    deviation: 1.5 # Tighter deviation bands
+    min_volume: 500000 # Lower volume requirement
+    risk_factor: 0.03 # Higher risk tolerance

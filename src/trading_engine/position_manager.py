@@ -145,7 +145,7 @@ class PositionManager:
                 return self.positions[position_id]
 
             # Try state storage
-            state = await self.state_manager.get_state(f"position:{position_id}")
+            state = self.state_manager.get_state(f"position:{position_id}")
             if state:
                 position = Position(**state)
                 self.positions[position_id] = position
@@ -185,7 +185,7 @@ class PositionManager:
             # Convert enums to strings
             state['status'] = position.status.value
 
-            await self.state_manager.set_state(
+            self.state_manager.set_state(
                 f"position:{position.position_id}",
                 state
             )

@@ -31,6 +31,9 @@ class DatabaseManager:
 
     async def _create_tables(self):
         """Create necessary database tables if they don't exist"""
+        if not self.pool:
+            raise RuntimeError("Database not initialized")
+
         async with self.pool.acquire() as conn:
             # Create trades table
             await conn.execute('''
@@ -125,37 +128,6 @@ class DatabaseManager:
                         await conn.execute(query, *values)
         except Exception as e:
             logger.error(f"Batch insert failed: {str(e)}")
-            raise
-
-    async def cleanup_old_data(self, days: int) -> None:
-        """Clean up data older than specified days"""
-        if not self.pool:
-            raise RuntimeError("Database not initialized")
-
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
-
-        try:
-            async with self.pool.acquire() as conn:
-                async with conn.transaction():
-                    # Clean up trades
-                    await conn.execute(
-                        "DELETE FROM trades WHERE timestamp < $1",
-                        cutoff_date
-                    )
-
-                    # Clean up candles
-                    await conn.execute(
-                        "DELETE FROM candles WHERE timestamp < $1",
-                        cutoff_date
-                    )
-
-                    # Clean up custom data
-                    await conn.execute(
-                        "DELETE FROM custom_data WHERE timestamp < $1",
-                        cutoff_date
-                    )
-        except Exception as e:
-            logger.error(f"Data cleanup failed: {str(e)}")
             raise
 
     async def close(self):

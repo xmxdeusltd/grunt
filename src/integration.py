@@ -1,25 +1,30 @@
-from typing import Dict, Any, Optional, Type
+from typing import Dict, Any, Optional, Type, List
 import logging
 import asyncio
 from datetime import datetime
 
+from src.config.types import Config
+
 from .trading_engine.engine import TradingEngine
 from .strategy_engine.manager import StrategyManager
-from .strategy_engine.base_strategy import BaseStrategy
+from .strategy_engine.base import BaseStrategy
 from .strategy_engine.models import DataPoint
-from .state_manager import StateManager
-from .jupiter_client import JupiterClient
+from .data_management import StateManager
+from .clients import JupiterClient
+from .config.loader import config as config_loader
 
 logger = logging.getLogger(__name__)
 
 
 class TradingSystem:
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Config):
         self.config = config
-        self.state_manager = StateManager(config["redis"])
+        self.config_loader = config_loader
+        self.state_manager = StateManager(config.redis)
+
         self.jupiter_client = JupiterClient(
-            rpc_endpoint=config["jupiter"]["rpc_endpoint"],
-            auth_token=config["jupiter"]["auth_token"]
+            rpc_endpoint=config.jupiter.rpc_endpoint,
+            auth_token=config.jupiter.auth_token
         )
 
         # Initialize engines
@@ -92,6 +97,10 @@ class TradingSystem:
         except Exception as e:
             logger.error(f"Error adding strategy: {str(e)}")
             raise
+
+    async def get_strategies(self) -> Dict[str, Any]:
+        """Get all strategies"""
+        return await self.strategy_manager.get_strategy_summary()
 
     async def remove_strategy(self, strategy_id: str) -> None:
         """Remove a trading strategy"""

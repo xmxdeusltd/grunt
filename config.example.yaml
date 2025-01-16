@@ -1,0 +1,103 @@
+# Database Configuration
+# PostgreSQL settings for persistent storage of trades, positions, and historical data
+database:
+  host: localhost # Database host address
+  port: 5432 # PostgreSQL default port
+  user: trading_bot # Database user (create with appropriate permissions)
+  password: your_password # Strong password recommended
+  database: trading_bot # Database name
+  min_connections: 5 # Minimum connection pool size
+  max_connections: 20 # Maximum connection pool size
+
+# Redis Configuration
+# Redis settings for real-time state management and caching
+redis:
+  host: localhost # Redis host address
+  port: 6379 # Redis default port
+  password: null # Set to null if no password, otherwise your_redis_password
+  db: 0 # Redis database number
+  max_connections: 10 # Maximum connections in pool
+
+# Jupiter Configuration
+# Settings for Jupiter DEX integration
+jupiter:
+  rpc_endpoint: https://api.mainnet-beta.solana.com # Solana RPC endpoint
+  auth_token: your_token # Jupiter API authentication token
+  max_price_impact: 0.01 # Maximum allowed price impact (1%)
+  min_sol_balance: 0.1 # Minimum SOL balance to maintain
+
+# API Configuration
+# REST API and WebSocket settings
+api:
+  host: 0.0.0.0 # API host (0.0.0.0 for all interfaces)
+  port: 8000 # API port
+  secret_key: your_secret_key # API authentication secret key
+  token_expiry: 3600 # JWT token expiry in seconds (1 hour)
+  rate_limits: # API rate limiting settings
+    trade: # Trade endpoint limits
+      requests: 10 # Maximum requests
+      period: 60 # Time period in seconds
+    query: # Query endpoint limits
+      requests: 100 # Maximum requests
+      period: 60 # Time period in seconds
+
+# Trading Configuration
+# Global trading parameters and risk management settings
+trading:
+  max_position_size: 1000 # Maximum position size in USDC
+  min_position_size: 10 # Minimum position size in USDC
+  max_positions_per_symbol: 3 # Maximum concurrent positions per symbol
+  default_stop_loss_percent: 0.05 # Default stop loss (5%)
+  risk_factor: 0.02 # Risk factor for position sizing (2%)
+
+# Strategy Configuration
+# Pre-defined strategy templates and parameters
+strategy:
+  default_templates:
+    # Moving Average Crossover Strategy Templates
+    ma_crossover:
+      conservative: # Conservative MA strategy
+        fast_ma: 20 # Fast moving average period
+        slow_ma: 50 # Slow moving average period
+        min_volume: 1000000 # Minimum 24h volume in USDC
+        risk_factor: 0.02 # Strategy-specific risk factor
+      aggressive: # Aggressive MA strategy
+        fast_ma: 10 # Faster moving average periods
+        slow_ma: 21
+        min_volume: 500000 # Lower volume requirement
+        risk_factor: 0.05 # Higher risk factor
+
+    # VWAP Strategy Templates
+    vwap:
+      default: # Default VWAP strategy
+        period: "1d" # VWAP calculation period
+        deviation: 2.0 # Standard deviation bands
+        min_volume: 1000000 # Minimum volume requirement
+        risk_factor: 0.02 # Strategy-specific risk factor
+      scalping: # Scalping VWAP strategy
+        period: "1h" # Shorter VWAP period
+        deviation: 1.5 # Tighter deviation bands
+        min_volume: 500000
+        risk_factor: 0.03
+
+# Data Management Configuration
+# Settings for market data handling and caching
+data:
+  candle_intervals: # Supported timeframes
+    - "1m" # 1 minute
+    - "5m" # 5 minutes
+    - "15m" # 15 minutes
+    - "1h" # 1 hour
+    - "4h" # 4 hours
+    - "1d" # 1 day
+  max_candles_per_query: 1000 # Maximum candles per API request
+  cache: # Cache TTL settings
+    price_ttl: 60 # Price cache lifetime (seconds)
+    candle_ttl: 300 # Candle cache lifetime (seconds)
+    state_ttl: 3600 # State cache lifetime (seconds)
+
+# Logging Configuration
+# Logging settings and format
+logging:
+  level: INFO # Logging level (DEBUG, INFO, WARNING, ERROR)
+  format: detailed # Log format (basic or detailed)

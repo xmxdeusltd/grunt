@@ -1,0 +1,132 @@
+# Environment and Configuration
+.env
+*.env
+config.yaml
+!config.example.yaml
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.python-version
+venv/
+env/
+ENV/
+.venv
+.env.bak/
+.venv.bak/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# Logs and Databases
+*.log
+*.sqlite
+*.sqlite3
+*.db
+logs/
+log/
+*.pid
+*.seed
+*.pid.lock
+
+# Trading specific
+backtest_results/
+trading_data/
+historical_data/
+*.pkl
+*.h5
+*.csv
+!requirements.txt
+
+# Testing and Coverage
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+htmlcov/
+
+# Documentation
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# System Files
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp
+*.temp
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*.ipynb
+
+# Redis
+dump.rdb
+*.rdb
+
+# Certificates and Keys
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+*.priv
+*.pub
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg 

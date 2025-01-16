@@ -1,0 +1,44 @@
+{
+  "ma_crossover": {
+    "conservative": {
+      "fast_ma": 20,
+      "slow_ma": 50,
+      "min_volume": 1000000,
+      "risk_factor": 0.02
+    },
+    "aggressive": {
+      "fast_ma": 10,
+      "slow_ma": 21,
+      "min_volume": 500000,
+      "risk_factor": 0.05
+    }
+  },
+  "vwap": {
+    "default": {
+      "period": "1d",
+      "deviation": 2.0,
+      "min_volume": 1000000,
+      "risk_factor": 0.02
+    },
+    "scalping": {
+      "period": "1h",
+      "deviation": 1.5,
+      "min_volume": 500000,
+      "risk_factor": 0.03
+    }
+  },
+  "twap": {
+    "default": {
+      "interval": "5m",
+      "target_time": "1h",
+      "size_increment": 0.1,
+      "risk_factor": 0.01
+    },
+    "aggressive": {
+      "interval": "1m",
+      "target_time": "30m",
+      "size_increment": 0.2,
+      "risk_factor": 0.02
+    }
+  }
+}
